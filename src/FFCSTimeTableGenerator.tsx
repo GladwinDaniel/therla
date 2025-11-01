@@ -35,6 +35,11 @@ export const FFCSTimeTableGenerator = () => {
   const [selectedTimetableIndex, setSelectedTimetableIndex] = useState(0);
   const [filterType, setFilterType] = useState<'all' | 'morning' | 'evening'>('all');
   const [clashInfo, setClashInfo] = useState<{course1: string, course2: string, slot1: string, slot2: string}[]>([]);
+  
+  // Filter states for results
+  const [teacherFilters, setTeacherFilters] = useState<Record<string, string>>({}); // course -> faculty name
+  const [theoryEndTimeFilter, setTheoryEndTimeFilter] = useState<string>(''); // preferred theory end time
+  const [labEndTimeFilter, setLabEndTimeFilter] = useState<string>(''); // preferred lab end time
 
   const morningTheorySlots = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'TB1', 'TC1', 'TD1', 'TE1', 'TF1', 'TG1', 'TAA1', 'TBB1', 'TCC1', 'TDD1', 'TA1'];
   const afternoonLabSlots = ['L31', 'L32', 'L33', 'L34', 'L35', 'L36', 'L37', 'L38', 'L39', 'L40', 'L41', 'L42', 'L43', 'L44', 'L45', 'L46', 'L47', 'L48', 'L49', 'L50', 'L51', 'L52', 'L53', 'L54', 'L55', 'L56', 'L57', 'L58', 'L59', 'L60'];
@@ -73,6 +78,52 @@ export const FFCSTimeTableGenerator = () => {
     'TA2': [{ day: 'FRI', time: '15:50-16:40' }],
     'TF2': [{ day: 'FRI', time: '16:45-17:35' }],
     'TDD2': [{ day: 'FRI', time: '17:40-18:30' }]
+  };
+
+  // Lab slot mappings (L1-L60)
+  // Morning labs: L1-L30, Afternoon labs: L31-L60
+  // Each lab typically spans 2 hours
+  const labSlotToSchedule: Record<string, ScheduleSlot[]> = {
+    // Morning labs (L1-L30) - Monday
+    'L1': [{ day: 'MON', time: '08:00-08:50' }], 'L2': [{ day: 'MON', time: '08:50-09:40' }],
+    'L3': [{ day: 'MON', time: '09:50-10:40' }], 'L4': [{ day: 'MON', time: '10:40-11:30' }],
+    'L5': [{ day: 'MON', time: '11:40-12:30' }], 'L6': [{ day: 'MON', time: '12:30-13:20' }],
+    // Morning labs - Tuesday
+    'L7': [{ day: 'TUE', time: '08:00-08:50' }], 'L8': [{ day: 'TUE', time: '08:50-09:40' }],
+    'L9': [{ day: 'TUE', time: '09:50-10:40' }], 'L10': [{ day: 'TUE', time: '10:40-11:30' }],
+    'L11': [{ day: 'TUE', time: '11:40-12:30' }], 'L12': [{ day: 'TUE', time: '12:30-13:20' }],
+    // Morning labs - Wednesday
+    'L13': [{ day: 'WED', time: '08:00-08:50' }], 'L14': [{ day: 'WED', time: '08:50-09:40' }],
+    'L15': [{ day: 'WED', time: '09:50-10:40' }], 'L16': [{ day: 'WED', time: '10:40-11:30' }],
+    'L17': [{ day: 'WED', time: '11:40-12:30' }], 'L18': [{ day: 'WED', time: '12:30-13:20' }],
+    // Morning labs - Thursday
+    'L19': [{ day: 'THU', time: '08:00-08:50' }], 'L20': [{ day: 'THU', time: '08:50-09:40' }],
+    'L21': [{ day: 'THU', time: '09:50-10:40' }], 'L22': [{ day: 'THU', time: '10:40-11:30' }],
+    'L23': [{ day: 'THU', time: '11:40-12:30' }], 'L24': [{ day: 'THU', time: '12:30-13:20' }],
+    // Morning labs - Friday
+    'L25': [{ day: 'FRI', time: '08:00-08:50' }], 'L26': [{ day: 'FRI', time: '08:50-09:40' }],
+    'L27': [{ day: 'FRI', time: '09:50-10:40' }], 'L28': [{ day: 'FRI', time: '10:40-11:30' }],
+    'L29': [{ day: 'FRI', time: '11:40-12:30' }], 'L30': [{ day: 'FRI', time: '12:30-13:20' }],
+    // Afternoon labs (L31-L60) - Monday
+    'L31': [{ day: 'MON', time: '14:00-14:50' }], 'L32': [{ day: 'MON', time: '14:50-15:40' }],
+    'L33': [{ day: 'MON', time: '15:50-16:40' }], 'L34': [{ day: 'MON', time: '16:40-17:30' }],
+    'L35': [{ day: 'MON', time: '17:40-18:30' }], 'L36': [{ day: 'MON', time: '18:30-19:20' }],
+    // Afternoon labs - Tuesday
+    'L37': [{ day: 'TUE', time: '14:00-14:50' }], 'L38': [{ day: 'TUE', time: '14:50-15:40' }],
+    'L39': [{ day: 'TUE', time: '15:50-16:40' }], 'L40': [{ day: 'TUE', time: '16:40-17:30' }],
+    'L41': [{ day: 'TUE', time: '17:40-18:30' }], 'L42': [{ day: 'TUE', time: '18:30-19:20' }],
+    // Afternoon labs - Wednesday
+    'L43': [{ day: 'WED', time: '14:00-14:50' }], 'L44': [{ day: 'WED', time: '14:50-15:40' }],
+    'L45': [{ day: 'WED', time: '15:50-16:40' }], 'L46': [{ day: 'WED', time: '16:40-17:30' }],
+    'L47': [{ day: 'WED', time: '17:40-18:30' }], 'L48': [{ day: 'WED', time: '18:30-19:20' }],
+    // Afternoon labs - Thursday
+    'L49': [{ day: 'THU', time: '14:00-14:50' }], 'L50': [{ day: 'THU', time: '14:50-15:40' }],
+    'L51': [{ day: 'THU', time: '15:50-16:40' }], 'L52': [{ day: 'THU', time: '16:40-17:30' }],
+    'L53': [{ day: 'THU', time: '17:40-18:30' }], 'L54': [{ day: 'THU', time: '18:30-19:20' }],
+    // Afternoon labs - Friday
+    'L55': [{ day: 'FRI', time: '14:00-14:50' }], 'L56': [{ day: 'FRI', time: '14:50-15:40' }],
+    'L57': [{ day: 'FRI', time: '15:50-16:40' }], 'L58': [{ day: 'FRI', time: '16:40-17:30' }],
+    'L59': [{ day: 'FRI', time: '17:40-18:30' }], 'L60': [{ day: 'FRI', time: '18:30-19:20' }]
   };
 
 // import React from 'react'; // already imported at the top of the file
@@ -314,10 +365,56 @@ export const FFCSTimeTableGenerator = () => {
     });
   };
 
-  const isMorningBatch = (slot: CourseSlot): boolean => {
-    const hasAfternoonLab = slot.labs.some(lab => afternoonLabSlots.includes(lab));
-    const isMorningTheory = morningTheorySlots.includes(slot.theory);
-    return isMorningTheory && (slot.labs.length === 0 || hasAfternoonLab);
+  const isMorningBatch = (slots: CourseSlot[]): boolean => {
+    let morningTheoryCount = 0;
+    let eveningTheoryCount = 0;
+    let morningLabCount = 0;
+    let eveningLabCount = 0;
+
+    slots.forEach(slot => {
+      // Check theory timing
+      if (morningTheorySlots.includes(slot.theory)) {
+        morningTheoryCount++;
+      } else if (slot.theory && slotToSchedule[slot.theory]) {
+        // Check if theory is in afternoon
+        const isAfternoon = slotToSchedule[slot.theory].some(s => {
+          const time = s.time;
+          return time >= '14:00' || (time >= '12:35' && time <= '13:25');
+        });
+        if (isAfternoon) {
+          eveningTheoryCount++;
+        } else {
+          morningTheoryCount++;
+        }
+      }
+
+      // Check lab timing
+      slot.labs.forEach(lab => {
+        if (labSlotToSchedule[lab]) {
+          const isAfternoonLab = labSlotToSchedule[lab].some(s => {
+            const time = s.time;
+            return time >= '14:00' || (time >= '12:30' && time <= '13:20');
+          });
+          if (afternoonLabSlots.includes(lab) || isAfternoonLab) {
+            eveningLabCount++;
+          } else {
+            morningLabCount++;
+          }
+        }
+      });
+    });
+
+    // If most theory is in morning and labs are after lunch (or just before), it's morning slot
+    // Vice versa is evening
+    const totalTheory = morningTheoryCount + eveningTheoryCount;
+    const totalLabs = morningLabCount + eveningLabCount;
+    
+    if (totalTheory === 0 && totalLabs === 0) return true;
+    
+    const theoryIsMorning = totalTheory === 0 || (morningTheoryCount / totalTheory) >= 0.5;
+    const labsAreAfternoon = totalLabs === 0 || (eveningLabCount / totalLabs) >= 0.5 || morningLabCount === 0;
+    
+    return theoryIsMorning && (labsAreAfternoon || totalLabs === 0);
   };
 
   const getSlotsOccupied = (slot: CourseSlot): Set<string> => {
@@ -335,7 +432,16 @@ export const FFCSTimeTableGenerator = () => {
       });
     }
 
-    slot.labs.forEach(lab => occupied.add(lab));
+    slot.labs.forEach(lab => {
+      if (labSlotToSchedule[lab]) {
+        labSlotToSchedule[lab].forEach(schedule => {
+          occupied.add(`${schedule.day}-${schedule.time}`);
+        });
+      } else {
+        // Fallback: use lab code as identifier
+        occupied.add(lab);
+      }
+    });
 
     return occupied;
   };
@@ -350,6 +456,46 @@ export const FFCSTimeTableGenerator = () => {
     return false;
   };
 
+  const getLatestTheoryTime = (timetable: Timetable): string => {
+    let latestTime = '08:00';
+    timetable.slots.forEach(slot => {
+      if (slot.theory && slotToSchedule[slot.theory]) {
+        slotToSchedule[slot.theory].forEach(schedule => {
+          const endTime = schedule.time.split('-')[1];
+          if (endTime > latestTime) {
+            latestTime = endTime;
+          }
+        });
+      }
+      if (slot.tutorial && slotToSchedule[slot.tutorial]) {
+        slotToSchedule[slot.tutorial].forEach(schedule => {
+          const endTime = schedule.time.split('-')[1];
+          if (endTime > latestTime) {
+            latestTime = endTime;
+          }
+        });
+      }
+    });
+    return latestTime;
+  };
+
+  const getLatestLabTime = (timetable: Timetable): string => {
+    let latestTime = '08:00';
+    timetable.slots.forEach(slot => {
+      slot.labs.forEach(lab => {
+        if (labSlotToSchedule[lab]) {
+          labSlotToSchedule[lab].forEach(schedule => {
+            const endTime = schedule.time.split('-')[1];
+            if (endTime > latestTime) {
+              latestTime = endTime;
+            }
+          });
+        }
+      });
+    });
+    return latestTime;
+  };
+
   const generateTimetables = () => {
     if (selectedCourses.length === 0) {
       alert('Please select at least one course');
@@ -357,60 +503,43 @@ export const FFCSTimeTableGenerator = () => {
     }
 
     const results: Timetable[] = [];
-    const newClashInfo: {course1: string, course2: string, slot1: string, slot2: string}[] = [];
     
+    // Generate timetables from all valid combinations of selected course options
+    // Each course can have multiple options, so we generate all valid combinations
     const courseOptions = selectedCourses.map(courseId => {
       const course = courses.find(c => c.name === courseId);
       return course!.slots;
     });
 
-    // Check for clashes before generating timetables
-    for (let i = 0; i < selectedCourses.length; i++) {
-      for (let j = i + 1; j < selectedCourses.length; j++) {
-        const course1 = selectedCourses[i];
-        const course2 = selectedCourses[j];
-        
-        const slots1 = courseOptions[i];
-        const slots2 = courseOptions[j];
-        
-        let hasAnyValidCombination = false;
-        
-        for (const slot1 of slots1) {
-          for (const slot2 of slots2) {
-            if (!hasConflict(slot1, slot2)) {
-              hasAnyValidCombination = true;
-              break;
-            } else {
-              // Store clash information with more details
-              newClashInfo.push({
-                course1,
-                course2,
-                slot1: slot1.theory,
-                slot2: slot2.theory
-              });
-            }
-          }
-          if (hasAnyValidCombination) break;
-        }
-      }
-    }
-    
-    setClashInfo(newClashInfo);
-
     const generate = (index: number, current: CourseSlot[]) => {
       if (index === courseOptions.length) {
-        const isMorning = current.every(slot => isMorningBatch(slot));
-        results.push({
-          slots: current.map((slot, idx) => ({
-            course: selectedCourses[idx],
-            ...slot
-          })),
-          batchType: isMorning ? 'Morning' : 'Evening'
-        });
+        // Check if this combination has no conflicts
+        let hasConflictInCombination = false;
+        for (let i = 0; i < current.length; i++) {
+          for (let j = i + 1; j < current.length; j++) {
+            if (hasConflict(current[i], current[j])) {
+              hasConflictInCombination = true;
+              break;
+            }
+          }
+          if (hasConflictInCombination) break;
+        }
+
+        // Only add if no conflicts - FILTER OUT CLASHES
+        if (!hasConflictInCombination) {
+          const isMorning = isMorningBatch(current);
+          results.push({
+            slots: current.map((slot, idx) => ({
+              course: selectedCourses[idx],
+              ...slot
+            })),
+            batchType: isMorning ? 'Morning' : 'Evening'
+          });
+        }
         return;
       }
 
-      // Try all options for each course with improved conflict detection
+      // Try all options for each course (generate all valid combinations)
       for (const option of courseOptions[index]) {
         let conflict = false;
         for (const selectedSlot of current) {
@@ -420,6 +549,7 @@ export const FFCSTimeTableGenerator = () => {
           }
         }
 
+        // Skip if conflict - only generate conflict-free timetables
         if (!conflict) {
           generate(index + 1, [...current, option]);
         }
@@ -429,11 +559,7 @@ export const FFCSTimeTableGenerator = () => {
     generate(0, []);
 
     if (results.length === 0) {
-      const clashDetails = newClashInfo.map(clash => 
-        `${clash.course1} (${clash.slot1}) clashes with ${clash.course2} (${clash.slot2})`
-      ).join('\n');
-      
-      alert(`No valid timetable combinations found. The selected courses have scheduling conflicts:\n\n${clashDetails}`);
+      alert('No valid timetable combinations found. The selected courses have scheduling conflicts in all possible combinations.');
       return;
     }
 
@@ -450,6 +576,11 @@ export const FFCSTimeTableGenerator = () => {
     setActiveTab('results');
     setSelectedTimetableIndex(0);
     setFilterType('all'); // Reset filter when generating new timetables
+    setClashInfo([]);
+    // Reset filters
+    setTeacherFilters({});
+    setTheoryEndTimeFilter('');
+    setLabEndTimeFilter('');
   };
 
   const toggleCourseSelection = (courseName: string) => {
@@ -460,17 +591,105 @@ export const FFCSTimeTableGenerator = () => {
     );
   };
 
+  const getFilteredTimetables = () => {
+    let filtered = [...generatedTimetables];
+
+    // Filter by teacher preferences
+    Object.entries(teacherFilters).forEach(([courseName, facultyName]) => {
+      if (facultyName) {
+        filtered = filtered.filter(timetable => {
+          const courseSlot = timetable.slots.find(s => s.course === courseName);
+          return courseSlot && courseSlot.faculty === facultyName;
+        });
+      }
+    });
+
+    // Filter by theory end time
+    if (theoryEndTimeFilter) {
+      filtered = filtered.filter(timetable => {
+        const latestTheoryTime = getLatestTheoryTime(timetable);
+        return latestTheoryTime <= theoryEndTimeFilter;
+      });
+    }
+
+    // Filter by lab end time
+    if (labEndTimeFilter) {
+      filtered = filtered.filter(timetable => {
+        const latestLabTime = getLatestLabTime(timetable);
+        return latestLabTime <= labEndTimeFilter;
+      });
+    }
+
+    // Filter by batch type (morning/evening)
+    if (filterType === 'morning') {
+      filtered = filtered.filter(t => t.batchType === 'Morning');
+    } else if (filterType === 'evening') {
+      filtered = filtered.filter(t => t.batchType === 'Evening');
+    }
+
+    return filtered;
+  };
+
+  // Reset selected index when filters change
+  useEffect(() => {
+    if (generatedTimetables.length === 0) return;
+    
+    let filtered = [...generatedTimetables];
+    
+    // Apply same filters as getFilteredTimetables
+    Object.entries(teacherFilters).forEach(([courseName, facultyName]) => {
+      if (facultyName) {
+        filtered = filtered.filter(timetable => {
+          const courseSlot = timetable.slots.find(s => s.course === courseName);
+          return courseSlot && courseSlot.faculty === facultyName;
+        });
+      }
+    });
+    
+    if (theoryEndTimeFilter) {
+      filtered = filtered.filter(timetable => {
+        const latestTheoryTime = getLatestTheoryTime(timetable);
+        return latestTheoryTime <= theoryEndTimeFilter;
+      });
+    }
+    
+    if (labEndTimeFilter) {
+      filtered = filtered.filter(timetable => {
+        const latestLabTime = getLatestLabTime(timetable);
+        return latestLabTime <= labEndTimeFilter;
+      });
+    }
+    
+    if (filterType === 'morning') {
+      filtered = filtered.filter(t => t.batchType === 'Morning');
+    } else if (filterType === 'evening') {
+      filtered = filtered.filter(t => t.batchType === 'Evening');
+    }
+    
+    if (selectedTimetableIndex >= filtered.length && filtered.length > 0) {
+      setSelectedTimetableIndex(0);
+    }
+  }, [teacherFilters, theoryEndTimeFilter, labEndTimeFilter, filterType, generatedTimetables, selectedTimetableIndex]);
+
   const renderTimetableGrid = (timetable: Timetable) => {
     const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
     const theoryTimes = ['08:00-08:50', '08:55-09:45', '09:50-10:40', '10:45-11:35', '11:40-12:30', '12:35-13:25', 'LUNCH', '14:00-14:50', '14:55-15:45', '15:50-16:40', '16:45-17:35', '17:40-18:30', '18:35-19:25'];
     const labTimes = ['08:00-08:50', '08:50-09:40', '09:50-10:40', '10:40-11:30', '11:40-12:30', '12:30-13:20', 'LUNCH', '14:00-14:50', '14:50-15:40', '15:50-16:40', '16:40-17:30', '17:40-18:30', '18:30-19:20'];
 
+    // Combine times for header - use theory times as primary
+    const allTimes = theoryTimes;
+
     const theoryGrid: Record<string, Record<string, any>> = {};
+    const labGrid: Record<string, Record<string, any>> = {};
 
     days.forEach(day => {
       theoryGrid[day] = {};
+      labGrid[day] = {};
       theoryTimes.forEach(time => {
         theoryGrid[day][time] = null;
+      });
+      labTimes.forEach(time => {
+        labGrid[day][time] = null;
       });
     });
 
@@ -488,6 +707,7 @@ export const FFCSTimeTableGenerator = () => {
     timetable.slots.forEach((slot, idx) => {
       const color = colors[idx % colors.length];
 
+      // Populate theory grid
       if (slot.theory && slotToSchedule[slot.theory]) {
         slotToSchedule[slot.theory].forEach(schedule => {
           if (theoryGrid[schedule.day] && theoryGrid[schedule.day][schedule.time] !== undefined) {
@@ -517,57 +737,75 @@ export const FFCSTimeTableGenerator = () => {
           }
         });
       }
+
+      // Populate lab grid
+      slot.labs.forEach(lab => {
+        if (labSlotToSchedule[lab]) {
+          labSlotToSchedule[lab].forEach(schedule => {
+            const labTime = schedule.time;
+            // Map to closest lab time slot
+            const matchedLabTime = labTimes.find(lt => lt === labTime || (lt !== 'LUNCH' && labTime >= lt.split('-')[0] && labTime <= lt.split('-')[1]));
+            if (matchedLabTime && labGrid[schedule.day] && labGrid[schedule.day][matchedLabTime] !== undefined) {
+              labGrid[schedule.day][matchedLabTime] = {
+                course: slot.course,
+                courseCode: lab,
+                type: 'Lab',
+                color: color,
+                faculty: slot.faculty,
+                slot: lab
+              };
+            }
+          });
+        }
+      });
     });
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-cyan-400">Theory Schedule</h3>
-          <div className="flex gap-2">
-            <button 
-              className={`px-3 py-1 rounded-lg text-xs font-semibold ${filterType === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
-              onClick={() => setFilterType('all')}
-            >
-              All
-            </button>
-            <button 
-              className={`px-3 py-1 rounded-lg text-xs font-semibold ${filterType === 'morning' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-gray-300'}`}
-              onClick={() => setFilterType('morning')}
-            >
-              Morning
-            </button>
-            <button 
-              className={`px-3 py-1 rounded-lg text-xs font-semibold ${filterType === 'evening' ? 'bg-blue-400 text-white' : 'bg-gray-700 text-gray-300'}`}
-              onClick={() => setFilterType('evening')}
-            >
-              Evening
-            </button>
-          </div>
-        </div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr>
-                <th className="border border-blue-700 bg-blue-900 p-2 text-white font-bold">Time</th>
-                {days.map(day => (
-                  <th key={day} className="border border-blue-700 bg-blue-900 p-2 text-white font-bold">{day}</th>
-                ))}
+                <th className="border border-gray-700 bg-gray-800 p-2 text-white font-bold">Day/Type</th>
+                <th className="border border-gray-700 bg-gray-800 p-2 text-white font-bold text-center">Start</th>
+                {allTimes.map((time, idx) => {
+                  if (time === 'LUNCH') {
+                    return (
+                      <th key={time} className="border border-gray-700 bg-yellow-900 p-2 text-white font-bold text-center" colSpan={2}>
+                        {time}
+                      </th>
+                    );
+                  }
+                  return (
+                    <th key={time} className="border border-gray-700 bg-gray-800 p-2 text-white font-bold text-center min-w-[100px]">
+                      {time}
+                    </th>
+                  );
+                })}
+                <th className="border border-gray-700 bg-gray-800 p-2 text-white font-bold text-center">End</th>
               </tr>
             </thead>
             <tbody>
-              {theoryTimes.map(time => (
-                <tr key={time}>
-                  <td className="border border-gray-700 bg-gray-900 p-2 text-white font-semibold text-center whitespace-nowrap">
-                    {time}
+              {days.map(day => [
+                // Theory row
+                <tr key={`${day}-theory`}>
+                  <td className="border border-gray-700 bg-blue-900 p-2 text-white font-bold text-center">
+                    {day}<br />THEORY
                   </td>
-                  {time === 'LUNCH' ? (
-                    <td colSpan={5} className="border border-gray-700 bg-gradient-to-r from-yellow-900 to-orange-900 p-3 text-center text-white font-bold">
-                      LUNCH
-                    </td>
-                  ) : (
-                    days.map(day => (
-                      <td key={`${day}-${time}`} className="border border-gray-700 p-1 bg-gray-800">
-                        {theoryGrid[day][time] ? (
+                  <td className="border border-gray-700 bg-gray-900 p-1 text-white text-center text-[10px]">
+                    08:00
+                  </td>
+                  {theoryTimes.map(time => {
+                    if (time === 'LUNCH') {
+                      return (
+                        <td key={time} colSpan={2} className="border border-gray-700 bg-gradient-to-r from-yellow-900 to-orange-900 p-2 text-center text-white font-bold">
+                          LUNCH
+                        </td>
+                      );
+                    }
+                    return (
+                      <td key={time} className="border border-gray-700 p-1 bg-gray-800 min-h-[50px]">
+                        {theoryGrid[day] && theoryGrid[day][time] ? (
                           <div className={`bg-gradient-to-br ${theoryGrid[day][time].color} p-2 rounded h-full min-h-[60px] flex flex-col justify-center`}>
                             <div className="font-bold text-white text-xs leading-tight">{theoryGrid[day][time].courseCode}</div>
                             <div className="text-[10px] text-gray-100 mt-0.5 leading-tight">{theoryGrid[day][time].course}</div>
@@ -576,60 +814,79 @@ export const FFCSTimeTableGenerator = () => {
                           </div>
                         ) : null}
                       </td>
-                    ))
-                  )}
+                    );
+                  })}
+                  <td className="border border-gray-700 bg-gray-900 p-1 text-white text-center text-[10px]">
+                    19:25
+                  </td>
+                </tr>,
+                // Lab row
+                <tr key={`${day}-lab`}>
+                  <td className="border border-gray-700 bg-green-900 p-2 text-white font-bold text-center">
+                    {day}<br />LAB
+                  </td>
+                  <td className="border border-gray-700 bg-gray-900 p-1 text-white text-center text-[10px]">
+                    08:00
+                  </td>
+                  {theoryTimes.map(theoryTime => {
+                    if (theoryTime === 'LUNCH') {
+                      return (
+                        <td key={theoryTime} colSpan={2} className="border border-gray-700 bg-gradient-to-r from-yellow-900 to-orange-900 p-2 text-center text-white font-bold">
+                          LUNCH
+                        </td>
+                      );
+                    }
+                    // Find lab data that matches this theory time slot
+                    // Lab times can be slightly different, so we need to match by start time
+                    const theoryStart = theoryTime.split('-')[0];
+                    const matchingLabTime = labTimes.find(lt => {
+                      if (lt === 'LUNCH') return false;
+                      const labStart = lt.split('-')[0];
+                      return labStart === theoryStart || (theoryStart === '08:00' && labStart === '08:00') || 
+                             (theoryStart === '14:00' && labStart === '14:00');
+                    });
+                    
+                    // Also check for overlapping times
+                    let labData = null;
+                    if (matchingLabTime && labGrid[day] && labGrid[day][matchingLabTime]) {
+                      labData = labGrid[day][matchingLabTime];
+                    } else {
+                      // Try to find any lab data in this time range
+                      for (const lt of labTimes) {
+                        if (lt !== 'LUNCH' && labGrid[day] && labGrid[day][lt]) {
+                          const labStart = lt.split('-')[0];
+                          const labEnd = lt.split('-')[1];
+                          const theoryEnd = theoryTime.split('-')[1];
+                          if ((theoryStart >= labStart && theoryStart < labEnd) || 
+                              (theoryEnd > labStart && theoryEnd <= labEnd)) {
+                            labData = labGrid[day][lt];
+                            break;
+                          }
+                        }
+                      }
+                    }
+                    
+                    return (
+                      <td key={theoryTime} className="border border-gray-700 p-1 bg-gray-800 min-h-[50px]">
+                        {labData ? (
+                          <div className={`bg-gradient-to-br ${labData.color} p-2 rounded h-full min-h-[60px] flex flex-col justify-center`}>
+                            <div className="font-bold text-white text-xs leading-tight">{labData.courseCode}</div>
+                            <div className="text-[10px] text-gray-100 mt-0.5 leading-tight">{labData.course}</div>
+                            <div className="text-[9px] text-gray-200 mt-1 leading-tight">{labData.faculty}</div>
+                            <div className="text-[9px] text-yellow-300 font-semibold mt-0.5">{labData.slot}</div>
+                          </div>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                  <td className="border border-gray-700 bg-gray-900 p-1 text-white text-center text-[10px]">
+                    19:20
+                  </td>
                 </tr>
-              ))}
+              ])}
             </tbody>
           </table>
         </div>
-
-        <div>
-          <h3 className="text-xl font-bold mb-3 text-green-400">Lab Schedule</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-xs">
-              <thead>
-                <tr>
-                  <th className="border border-green-700 bg-green-900 p-2 text-white font-bold">Time</th>
-                  {days.map(day => (
-                    <th key={day} className="border border-green-700 bg-green-900 p-2 text-white font-bold">{day}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {labTimes.map(time => (
-                  <tr key={time}>
-                    <td className="border border-gray-700 bg-gray-900 p-2 text-white font-semibold text-center whitespace-nowrap">
-                      {time}
-                    </td>
-                    {time === 'LUNCH' ? (
-                      <td colSpan={5} className="border border-gray-700 bg-gradient-to-r from-yellow-900 to-orange-900 p-3 text-center text-white font-bold">
-                        LUNCH
-                      </td>
-                    ) : (
-                      days.map(day => (
-                        <td key={`${day}-${time}`} className="border border-gray-700 p-1 bg-gray-800"></td>
-                      ))
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
-        {clashInfo.length > 0 && (
-          <div className="mt-4 p-4 bg-red-900 bg-opacity-50 border border-red-500 rounded-lg">
-            <h3 className="text-lg font-bold text-red-400 mb-2">Slot Clashes Detected:</h3>
-            <ul className="list-disc pl-5 space-y-1">
-              {clashInfo.map((clash, index) => (
-                <li key={index} className="text-red-300 text-sm">
-                  {clash.course1} ({clash.slot1}) clashes with {clash.course2} ({clash.slot2})
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     );
   };
@@ -681,20 +938,23 @@ export const FFCSTimeTableGenerator = () => {
                     <thead>
                       <tr className="bg-gray-800">
                         <th className="border border-gray-700 p-2 text-left text-yellow-400">Course title</th>
-                        <th className="border border-gray-700 p-2 text-left text-green-400">AB3-704 location</th>
-                        <th className="border border-gray-700 p-2 text-left text-blue-400">AB3-705 location</th>
+                        <th className="border border-gray-700 p-2 text-left text-green-400">choice 1</th>
+                        <th className="border border-gray-700 p-2 text-left text-blue-400">choice2</th>
+                        <th className="border border-gray-700 p-2 text-left text-purple-400">choice3</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
                         <td className="border border-gray-700 p-2 text-gray-300">Deep Learning</td>
-                        <td className="border border-gray-700 p-2 text-green-300 font-mono text-xs">A1:Dr.Prakash</td>
-                        <td className="border border-gray-700 p-2 text-blue-300 font-mono text-xs">F1:Dr.John</td>
+                        <td className="border border-gray-700 p-2 text-green-300 font-mono text-xs">E1+L5+L6:Prakash P</td>
+                        <td className="border border-gray-700 p-2 text-blue-300 font-mono text-xs">E1+L31+L32:Dr.R Jothi</td>
+                        <td className="border border-gray-700 p-2 text-purple-300 font-mono text-xs">E2+L27+L28:Dr.R Jothi</td>
                       </tr>
                       <tr>
                         <td className="border border-gray-700 p-2 text-gray-300">Business Analytics</td>
-                        <td className="border border-gray-700 p-2 text-green-300 font-mono text-xs">B1+L37+L38:Dr.Smith</td>
-                        <td className="border border-gray-700 p-2 text-blue-300 font-mono text-xs">B2:Dr.Johnson</td>
+                        <td className="border border-gray-700 p-2 text-green-300 font-mono text-xs">B1:MANNIKAM</td>
+                        <td className="border border-gray-700 p-2 text-blue-300 font-mono text-xs">B2:LAURANCE</td>
+                        <td className="border border-gray-700 p-2 text-purple-300 font-mono text-xs">B2:KUMAR</td>
                       </tr>
                     </tbody>
                   </table>
@@ -703,6 +963,7 @@ export const FFCSTimeTableGenerator = () => {
                 <div className="mt-4 space-y-2 text-sm text-gray-300">
                   <p><strong className="text-cyan-400">Format:</strong> SLOT+LAB1+LAB2:FACULTY</p>
                   <p><strong className="text-cyan-400">Example:</strong> A1+L37+L38:Dr.Prakash</p>
+                  <p className="text-yellow-400 mt-2"><strong>Note:</strong> Students only need to select subjects. The system will automatically generate all valid timetable combinations from all available choices and allow filtering by teacher preference and end times.</p>
                 </div>
               </div>
 
@@ -754,7 +1015,9 @@ export const FFCSTimeTableGenerator = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-bold text-lg">{course.name}</h3>
-                          <p className="text-sm text-gray-300 mt-1">{course.slots.length} option(s) available</p>
+                          <p className="text-sm text-gray-300 mt-1">
+                            {course.slots.length} option(s) available with {new Set(course.slots.map(s => s.faculty)).size} different faculty members
+                          </p>
                         </div>
                         {selectedCourses.includes(course.name) && <CheckCircle className="w-6 h-6" />}
                       </div>
@@ -780,69 +1043,187 @@ export const FFCSTimeTableGenerator = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Found {generatedTimetables.length} Timetable(s)</h2>
-                    <div className="flex items-center gap-2">
-                      <div className={`px-4 py-2 rounded-full font-bold ${generatedTimetables[selectedTimetableIndex]?.batchType === 'Morning' ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-black' : 'bg-gradient-to-r from-cyan-400 to-blue-400'}`}>
-                        {generatedTimetables[selectedTimetableIndex]?.batchType} Batch
-                      </div>
+                  {/* Filters Section */}
+                  <div className="bg-gray-800 p-6 rounded-xl space-y-4">
+                    <h3 className="text-xl font-bold text-cyan-400 mb-4">Filter Options</h3>
+                    
+                    {/* Batch Type Filter */}
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-semibold text-gray-300 whitespace-nowrap">Batch Type:</label>
                       <div className="flex gap-2">
                         <button 
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold ${filterType === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold ${filterType === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
                           onClick={() => setFilterType('all')}
                         >
                           All
                         </button>
                         <button 
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold ${filterType === 'morning' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-gray-300'}`}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold ${filterType === 'morning' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-gray-300'}`}
                           onClick={() => setFilterType('morning')}
                         >
                           Morning
                         </button>
                         <button 
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold ${filterType === 'evening' ? 'bg-blue-400 text-white' : 'bg-gray-700 text-gray-300'}`}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold ${filterType === 'evening' ? 'bg-blue-400 text-white' : 'bg-gray-700 text-gray-300'}`}
                           onClick={() => setFilterType('evening')}
                         >
                           Evening
                         </button>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {generatedTimetables
-                      .filter(timetable => {
-                        if (filterType === 'all') return true;
-                        if (filterType === 'morning') return timetable.batchType === 'Morning';
-                        if (filterType === 'evening') return timetable.batchType === 'Evening';
-                        return true;
-                      })
-                      .map((_, idx) => (
-                        <button key={idx} onClick={() => setSelectedTimetableIndex(idx)} className={`px-4 py-2 rounded-lg font-semibold ${selectedTimetableIndex === idx ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-gray-700 hover:bg-gray-600'}`}>
-                          Option {idx + 1}
-                        </button>
-                      ))}
-                  </div>
-
-                  <div className="bg-gray-900 p-4 rounded-xl">
-                    {renderTimetableGrid(generatedTimetables[selectedTimetableIndex])}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3">
-                    <h3 className="font-bold text-lg">Course Details:</h3>
-                    {generatedTimetables[selectedTimetableIndex].slots.map((slot, idx) => (
-                      <div key={idx} className="bg-gray-700 p-4 rounded-lg">
-                        <div className="font-bold text-cyan-400">{slot.course}</div>
-                        <div className="text-sm text-gray-300 mt-2 space-y-1">
-                          <div>Theory: {slot.theory}</div>
-                          {slot.tutorial && <div>Tutorial: {slot.tutorial}</div>}
-                          {slot.labs.length > 0 && <div>Labs: {slot.labs.join(', ')}</div>}
-                          <div>Faculty: {slot.faculty}</div>
-                          <div>Location: {slot.location}</div>
+                    {/* Teacher Filters per Subject */}
+                    {selectedCourses.map(courseName => {
+                      const course = courses.find(c => c.name === courseName);
+                      if (!course) return null;
+                      const uniqueFaculties = Array.from(new Set(course.slots.map(s => s.faculty))).filter(f => f);
+                      
+                      return (
+                        <div key={courseName} className="flex items-center gap-4">
+                          <label className="text-sm font-semibold text-gray-300 whitespace-nowrap min-w-[150px]">{courseName}:</label>
+                          <select
+                            value={teacherFilters[courseName] || ''}
+                            onChange={(e) => setTeacherFilters(prev => ({ ...prev, [courseName]: e.target.value }))}
+                            className="flex-1 bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          >
+                            <option value="">All Teachers</option>
+                            {uniqueFaculties.map(faculty => (
+                              <option key={faculty} value={faculty}>{faculty}</option>
+                            ))}
+                          </select>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
+
+                    {/* Theory End Time Filter */}
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-semibold text-gray-300 whitespace-nowrap">Theory End Time (max):</label>
+                      <select
+                        value={theoryEndTimeFilter}
+                        onChange={(e) => setTheoryEndTimeFilter(e.target.value)}
+                        className="flex-1 bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      >
+                        <option value="">No preference</option>
+                        <option value="12:30">12:30 (Before Lunch)</option>
+                        <option value="13:25">13:25 (End of Morning)</option>
+                        <option value="15:45">15:45</option>
+                        <option value="16:40">16:40</option>
+                        <option value="17:35">17:35</option>
+                        <option value="18:30">18:30</option>
+                        <option value="19:25">19:25 (End of Day)</option>
+                      </select>
+                    </div>
+
+                    {/* Lab End Time Filter */}
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-semibold text-gray-300 whitespace-nowrap">Lab End Time (max):</label>
+                      <select
+                        value={labEndTimeFilter}
+                        onChange={(e) => setLabEndTimeFilter(e.target.value)}
+                        className="flex-1 bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      >
+                        <option value="">No preference</option>
+                        <option value="12:30">12:30 (Before Lunch)</option>
+                        <option value="13:20">13:20 (End of Morning)</option>
+                        <option value="15:40">15:40</option>
+                        <option value="16:40">16:40</option>
+                        <option value="17:30">17:30</option>
+                        <option value="18:30">18:30</option>
+                        <option value="19:20">19:20 (End of Day)</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {(() => {
+                    const filtered = getFilteredTimetables();
+                    const currentIndex = Math.min(selectedTimetableIndex, filtered.length - 1);
+                    const currentTimetable = filtered[currentIndex] || null;
+
+                    return (
+                      <>
+                        {/* Results Count and Batch Type Badge */}
+                        <div className="flex items-center justify-between">
+                          <h2 className="text-2xl font-bold">
+                            Found {filtered.length} Timetable(s) 
+                            {filtered.length !== generatedTimetables.length && (
+                              <span className="text-lg text-gray-400 font-normal ml-2">
+                                (out of {generatedTimetables.length} total)
+                              </span>
+                            )}
+                          </h2>
+                          {currentTimetable && (
+                            <div className={`px-4 py-2 rounded-full font-bold ${
+                              currentTimetable.batchType === 'Morning' 
+                                ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-black' 
+                                : 'bg-gradient-to-r from-cyan-400 to-blue-400'
+                            }`}>
+                              {currentTimetable.batchType} Batch
+                            </div>
+                          )}
+                        </div>
+
+                        {filtered.length === 0 ? (
+                          <div className="text-center py-12 bg-gray-800 rounded-xl">
+                            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
+                            <p className="text-gray-400 text-lg">No timetables match your filter criteria</p>
+                            <button
+                              onClick={() => {
+                                setTeacherFilters({});
+                                setTheoryEndTimeFilter('');
+                                setLabEndTimeFilter('');
+                                setFilterType('all');
+                              }}
+                              className="mt-4 px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-semibold"
+                            >
+                              Clear All Filters
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex gap-2 overflow-x-auto pb-2">
+                              {filtered.map((_, idx) => (
+                                <button 
+                                  key={idx} 
+                                  onClick={() => setSelectedTimetableIndex(idx)} 
+                                  className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap ${
+                                    currentIndex === idx 
+                                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500' 
+                                      : 'bg-gray-700 hover:bg-gray-600'
+                                  }`}
+                                >
+                                  Option {idx + 1}
+                                </button>
+                              ))}
+                            </div>
+
+                            {currentTimetable && (
+                              <>
+                                <div className="bg-gray-900 p-4 rounded-xl">
+                                  {renderTimetableGrid(currentTimetable)}
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-3">
+                                  <h3 className="font-bold text-lg">Course Details:</h3>
+                                  {currentTimetable.slots.map((slot, idx) => (
+                                    <div key={idx} className="bg-gray-700 p-4 rounded-lg">
+                                      <div className="font-bold text-cyan-400">{slot.course}</div>
+                                      <div className="text-sm text-gray-300 mt-2 space-y-1">
+                                        <div>Theory: {slot.theory}</div>
+                                        {slot.tutorial && <div>Tutorial: {slot.tutorial}</div>}
+                                        {slot.labs.length > 0 && <div>Labs: {slot.labs.join(', ')}</div>}
+                                        <div className="font-semibold text-yellow-300">Faculty: {slot.faculty}</div>
+                                        <div>Location: {slot.location}</div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </div>
@@ -852,3 +1233,4 @@ export const FFCSTimeTableGenerator = () => {
     </div>
   );
 };
+
